@@ -1,0 +1,378 @@
+---
+title: 'Layers API'
+description: 'Endpoints para gerenciar camadas geoespaciais'
+---
+
+# Layers API
+
+## Listar Camadas
+
+```bash
+GET /api/v1/layers
+```
+
+### Query Parameters
+
+| Parâmetro | Tipo | Descrição |
+|-----------|------|-----------|
+| page | integer | Número da página (padrão: 1) |
+| per_page | integer | Itens por página (padrão: 15, máx: 100) |
+| type | string | Filtrar por tipo (point, linestring, polygon) |
+| is_active | boolean | Filtrar por status (true, false) |
+| search | string | Buscar por nome |
+| sort | string | Ordenar (name, -created_at) |
+
+### Response
+
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "name": "Minha Camada",
+      "description": "Descrição da camada",
+      "type": "polygon",
+      "is_active": true,
+      "created_by": {
+        "id": 1,
+        "name": "Admin User"
+      },
+      "created_at": "2025-11-02T22:40:00Z",
+      "updated_at": "2025-11-02T22:40:00Z"
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "total": 10
+  }
+}
+```
+
+## Obter Camada
+
+```bash
+GET /api/v1/layers/{id}
+```
+
+### Response GeoJSON
+
+```json
+{
+  "type": "Feature",
+  "id": 1,
+  "properties": {
+    "name": "Minha Camada",
+    "description": "Descrição",
+    "type": "polygon",
+    "is_active": true,
+    "created_by": "Admin User",
+    "created_at": "2025-11-02T22:40:00Z"
+  },
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [-47.9292, -15.7801],
+        [-47.9200, -15.7801],
+        [-47.9200, -15.7700],
+        [-47.9292, -15.7700],
+        [-47.9292, -15.7801]
+      ]
+    ]
+  }
+}
+```
+
+## Criar Camada
+
+```bash
+POST /api/v1/layers
+```
+
+**Requer autenticação e permissão `create_layer`**
+
+### Request
+
+```json
+{
+  "name": "Nova Camada",
+  "description": "Descrição opcional",
+  "type": "polygon",
+  "geojson": {
+    "type": "Feature",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [-47.9292, -15.7801],
+          [-47.9200, -15.7801],
+          [-47.9200, -15.7700],
+          [-47.9292, -15.7700],
+          [-47.9292, -15.7801]
+        ]
+      ]
+    }
+  }
+}
+```
+
+### Upload de Arquivo
+
+```bash
+POST /api/v1/layers
+Content-Type: multipart/form-data
+```
+
+Form data:
+
+- `name`: string (required)
+- `description`: string (optional)
+- `file`: GeoJSON file (required, max 10MB)
+
+### Response
+
+```json
+{
+  "data": {
+    "id": 2,
+    "name": "Nova Camada",
+    "description": "Descrição opcional",
+    "type": "polygon",
+    "is_active": true,
+    "created_at": "2025-11-02T22:45:00Z"
+  },
+  "message": "Layer created successfully"
+}
+```
+
+## Atualizar Camada
+
+```bash
+PUT /api/v1/layers/{id}
+```
+
+**Requer autenticação e permissão `edit_layer`**
+
+### Request
+
+```json
+{
+  "name": "Nome Atualizado",
+  "description": "Nova descrição",
+  "is_active": false
+}
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "id": 1,
+    "name": "Nome Atualizado",
+    "description": "Nova descrição",
+    "is_active": false,
+    "updated_at": "2025-11-02T22:50:00Z"
+  },
+  "message": "Layer updated successfully"
+}
+```
+
+## Deletar Camada
+
+```bash
+DELETE /api/v1/layers/{id}
+```
+
+**Requer autenticação e permissão `delete_layer`**
+
+### Response
+
+```json
+{
+  "message": "Layer deleted successfully",
+  "status": 204
+}
+```
+
+## Ativar/Desativar Camada
+
+```bash
+PATCH /api/v1/layers/{id}/toggle
+```
+
+**Requer autenticação**
+
+### Response
+
+```json
+{
+  "data": {
+    "id": 1,
+    "is_active": true
+  },
+  "message": "Layer status updated"
+}
+```
+
+## Obter GeoJSON de Múltiplas Camadas
+
+```bash
+GET /api/v1/layers/geojson
+```
+
+### Query Parameters
+
+| Parâmetro | Tipo | Descrição |
+|-----------|------|-----------|
+| ids | array | IDs das camadas (ex: ?ids[]=1&ids[]=2) |
+| type | string | Filtrar por tipo |
+
+### Response FeatureCollection
+
+```json
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": 1,
+      "properties": {
+        "name": "Camada 1"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[...]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 2,
+      "properties": {
+        "name": "Camada 2"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-47.9292, -15.7801]
+      }
+    }
+  ]
+}
+```
+
+## Validação
+
+### Regras de Nome
+
+- Obrigatório
+- Mínimo 3 caracteres
+- Máximo 255 caracteres
+- Apenas letras, números, espaços, hífens e underscores
+
+### Regras de GeoJSON
+
+- Deve ser JSON válido
+- Deve conter `type` e `geometry`
+- Geometria deve ser válida (RFC 7946)
+- SRID 4326 (WGS84)
+
+### Tamanho de Arquivo
+
+- Máximo: 10 MB
+
+## Erros
+
+### 400 Bad Request
+
+```json
+{
+  "error": {
+    "code": "INVALID_GEOJSON",
+    "message": "The provided GeoJSON is invalid",
+    "details": {
+      "line": 10,
+      "error": "Invalid coordinates"
+    }
+  }
+}
+```
+
+### 404 Not Found
+
+```json
+{
+  "error": {
+    "code": "LAYER_NOT_FOUND",
+    "message": "Layer not found"
+  },
+  "status": 404
+}
+```
+
+### 422 Unprocessable Entity
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "The given data was invalid",
+    "details": {
+      "name": ["The name field is required."],
+      "type": ["The type must be one of: point, linestring, polygon."]
+    }
+  },
+  "status": 422
+}
+```
+
+## Exemplo Completo
+
+```javascript
+// Criar camada
+const createLayer = async (token, layerData) => {
+  const response = await fetch('http://localhost:8000/api/v1/layers', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
+    body: JSON.stringify(layerData)
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error.message);
+  }
+  
+  return await response.json();
+};
+
+// Uso
+const newLayer = {
+  name: 'Brasília',
+  description: 'Área metropolitana de Brasília',
+  type: 'polygon',
+  geojson: {
+    type: 'Feature',
+    geometry: {
+      type: 'Polygon',
+      coordinates: [[
+        [-47.9292, -15.7801],
+        [-47.9200, -15.7801],
+        [-47.9200, -15.7700],
+        [-47.9292, -15.7700],
+        [-47.9292, -15.7801]
+      ]]
+    }
+  }
+};
+
+try {
+  const result = await createLayer(token, newLayer);
+  console.log('Layer criada:', result.data);
+} catch (error) {
+  console.error('Erro:', error.message);
+}
+```
+

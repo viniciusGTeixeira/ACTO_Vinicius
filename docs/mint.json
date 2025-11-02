@@ -1,0 +1,88 @@
+{
+  "name": "ACTO Maps",
+  "logo": {
+    "dark": "/logo/dark.svg",
+    "light": "/logo/light.svg"
+  },
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#0D9373",
+    "light": "#07C983",
+    "dark": "#0D9373",
+    "anchors": {
+      "from": "#0D9373",
+      "to": "#07C983"
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "GitHub",
+      "url": "https://github.com"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Painel Admin",
+    "url": "http://localhost:8000/painel"
+  },
+  "tabs": [
+    {
+      "name": "Documentação Técnica",
+      "url": "technical"
+    },
+    {
+      "name": "API Reference",
+      "url": "api"
+    }
+  ],
+  "anchors": [
+    {
+      "name": "Repositório",
+      "icon": "github",
+      "url": "https://github.com"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Início",
+      "pages": [
+        "ESCOPO"
+      ]
+    },
+    {
+      "group": "Documentação de Negócio",
+      "pages": [
+        "BRD",
+        "PRD"
+      ]
+    },
+    {
+      "group": "Documentação Técnica",
+      "pages": [
+        "technical/TRD",
+        "technical/TDD",
+        "technical/Infradoc",
+        "technical/Seguranca",
+        "technical/Environment-Variables",
+        "technical/Evolution-API"
+      ]
+    },
+    {
+      "group": "Banco de Dados",
+      "pages": [
+        "database"
+      ]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "api/overview",
+        "api/authentication",
+        "api/layers"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "github": "https://github.com"
+  }
+}
+

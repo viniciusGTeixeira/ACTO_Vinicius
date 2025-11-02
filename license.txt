@@ -1,0 +1,26 @@
+LICENÇA DE AVALIAÇÃO TÉCNICA — USO NÃO-COMERCIAL
+
+Copyright (c) 2025 - Kemersson Vinicius Gonçalves Teixeira. Todos os direitos reservados.
+
+1. Concessão Limitada
+O titular concede ao Receptor uma licença limitada, não exclusiva, intransferível e revogável para usar, executar e analisar o conteúdo (o "Material") exclusivamente para fins de **avaliação técnica** do autor. Esta licença NÃO autoriza qualquer uso comercial, distribuição pública ou incorporação do Material em produtos, serviços ou projetos da empresa.
+
+2. Restrições
+Sem prejuízo de outras limitações previstas nesta Licença, o Receptor obriga-se a não:
+  a) usar, copiar, modificar, distribuir, sublicenciar, ou explorar comercialmente o Material;
+  b) incorporar, direta ou indiretamente, partes substanciais do Material em software, sistemas, infraestruturas, documentação ou quaisquer produtos/serviços;
+  c) afirmar, implicar ou permitir que a propriedade intelectual do Material foi transferida ao Receptor.
+
+3. Conservação de Avisos
+O Receptor deve manter todos os avisos de direitos autorais, avisos de licença e este texto em qualquer cópia do Material usada para avaliação.
+
+4. Vigência e Revogabilidade
+Esta licença é concedida apenas para o período de avaliação e é revogável a qualquer momento pelo titular, mediante notificação escrita. Uso em desacordo com os termos aqui estabelecidos constitui violação desta Licença.
+
+5. Garantia e Responsabilidade
+O Material é fornecido "no estado em que se encontra", sem garantias de qualquer tipo. O titular não será responsável por quaisquer danos decorrentes do uso do Material.
+
+6. Lei Aplicável e Foro
+Esta Licença será regida pelas leis do Brasil. Para dirimir quaisquer controvérsias, as partes elegem o foro da Comarca de Belo Horizonte - Minas Gerais, com renúncia de qualquer outro, por mais privilegiado que seja.
+
+Contato para autorizações ou dúvidas: kemerssonvinicius@gmail.com

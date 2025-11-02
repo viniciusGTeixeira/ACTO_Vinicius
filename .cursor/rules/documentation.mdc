@@ -1,0 +1,12 @@
+---
+alwaysApply: true
+---
+
+filament: https://filamentphp.com/docs/4.x/introduction/installation
+laravel: https://laravel.com/docs/12.x
+php: https://www.php.net/docs.php
+postgreSQL: https://www.postgresql.org/docs/
+POSTGIS: https://postgis.net/documentation/
+Tailwind: https://tailwindcss.com/docs/installation/using-vite
+TLS: https://docs.openssl.org/master/
+

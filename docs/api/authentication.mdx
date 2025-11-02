@@ -1,0 +1,274 @@
+---
+title: 'Authentication'
+description: 'Autenticação e autorização na API'
+---
+
+# Autenticação
+
+## Laravel Sanctum
+
+A API utiliza Laravel Sanctum para autenticação baseada em tokens.
+
+## Obter Token
+
+### Login
+
+```bash
+POST /api/v1/auth/login
+```
+
+Request:
+
+```json
+{
+  "email": "admin@acto.com",
+  "password": "password"
+}
+```
+
+Response:
+
+```json
+{
+  "data": {
+    "token": "1|abc123xyz...",
+    "user": {
+      "id": 1,
+      "name": "Admin User",
+      "email": "admin@acto.com",
+      "roles": ["admin"]
+    }
+  }
+}
+```
+
+### Criar Token API
+
+Via painel admin ou comando:
+
+```bash
+POST /api/v1/auth/tokens
+```
+
+Request:
+
+```json
+{
+  "name": "API Token for Integration",
+  "abilities": ["view_layer", "create_layer"]
+}
+```
+
+Response:
+
+```json
+{
+  "data": {
+    "token": "2|def456uvw...",
+    "name": "API Token for Integration",
+    "abilities": ["view_layer", "create_layer"]
+  }
+}
+```
+
+## Usar Token
+
+Incluir token no header Authorization:
+
+```bash
+curl -X GET http://localhost:8000/api/v1/layers \
+  -H "Authorization: Bearer 1|abc123xyz..." \
+  -H "Accept: application/json"
+```
+
+## Logout
+
+```bash
+POST /api/v1/auth/logout
+```
+
+Revoga o token atual.
+
+## Revogar Token
+
+```bash
+DELETE /api/v1/auth/tokens/{id}
+```
+
+## Listar Tokens
+
+```bash
+GET /api/v1/auth/tokens
+```
+
+Response:
+
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "name": "API Token",
+      "abilities": ["*"],
+      "last_used_at": "2025-11-02T22:40:00Z",
+      "created_at": "2025-11-01T10:00:00Z"
+    }
+  ]
+}
+```
+
+## Abilities (Permissões)
+
+Tokens podem ter abilities específicas:
+
+| Ability | Descrição |
+|---------|-----------|
+| `*` | Todas as permissões |
+| `view_layer` | Visualizar camadas |
+| `create_layer` | Criar camadas |
+| `edit_layer` | Editar camadas |
+| `delete_layer` | Deletar camadas |
+| `manage_users` | Gerenciar usuários (admin only) |
+
+Exemplo de token com permissões limitadas:
+
+```json
+{
+  "abilities": ["view_layer", "create_layer"]
+}
+```
+
+## Verificar Permissões
+
+No request, o servidor verifica automaticamente:
+
+```php
+if ($request->user()->tokenCan('create_layer')) {
+    // Permitido
+}
+```
+
+## Two-Factor Authentication
+
+Se 2FA está habilitado:
+
+1. Fazer login normal
+2. Receber código 2FA
+3. Confirmar código
+
+```bash
+POST /api/v1/auth/2fa/confirm
+```
+
+Request:
+
+```json
+{
+  "code": "123456"
+}
+```
+
+## Refresh Token
+
+Tokens não expiram por padrão, mas podem ser configurados:
+
+```env
+SANCTUM_EXPIRATION=1440  # 24 horas
+```
+
+## Segurança
+
+### Rate Limiting
+
+Login limitado a 5 tentativas por minuto por IP.
+
+### Token Revocation
+
+Tokens são automaticamente revogados quando:
+
+- Usuário faz logout
+- Usuário troca senha
+- Admin revoga manualmente
+
+### Best Practices
+
+1. Nunca commitar tokens no código
+2. Usar variáveis de ambiente
+3. Rotacionar tokens periodicamente
+4. Limitar abilities ao mínimo necessário
+5. Monitorar uso de tokens suspeitos
+
+## Exemplo Completo
+
+```javascript
+// Login
+const loginResponse = await fetch('http://localhost:8000/api/v1/auth/login', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  },
+  body: JSON.stringify({
+    email: 'admin@acto.com',
+    password: 'password'
+  })
+});
+
+const { data } = await loginResponse.json();
+const token = data.token;
+
+// Usar token para acessar API
+const layersResponse = await fetch('http://localhost:8000/api/v1/layers', {
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Accept': 'application/json'
+  }
+});
+
+const layers = await layersResponse.json();
+```
+
+## Erros Comuns
+
+### 401 Unauthorized
+
+```json
+{
+  "error": {
+    "code": "UNAUTHENTICATED",
+    "message": "Unauthenticated."
+  },
+  "status": 401
+}
+```
+
+Solução: Verificar se token está presente e válido.
+
+### 403 Forbidden
+
+```json
+{
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "This action is unauthorized."
+  },
+  "status": 403
+}
+```
+
+Solução: Usuário não tem permissão para a ação.
+
+### 429 Too Many Requests
+
+```json
+{
+  "error": {
+    "code": "TOO_MANY_REQUESTS",
+    "message": "Too many login attempts. Please try again in 60 seconds."
+  },
+  "status": 429
+}
+```
+
+Solução: Aguardar antes de tentar novamente.
+

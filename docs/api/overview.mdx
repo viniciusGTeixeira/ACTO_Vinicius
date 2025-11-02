@@ -1,0 +1,171 @@
+---
+title: 'API Overview'
+description: 'Visão geral da API REST do ACTO Maps'
+---
+
+# API REST
+
+## Introdução
+
+A API REST do ACTO Maps permite integração com sistemas externos para gerenciamento de camadas geoespaciais.
+
+## Base URL
+
+```
+http://localhost:8000/api/v1
+```
+
+## Formatos
+
+- Request: JSON
+- Response: JSON / GeoJSON
+
+## Rate Limiting
+
+| Tipo | Limite | Janela |
+|------|--------|--------|
+| Público | 60 requisições | 1 minuto |
+| Autenticado | 100 requisições | 1 minuto |
+| Admin | 30 requisições | 1 minuto |
+
+## Autenticação
+
+A API utiliza Laravel Sanctum para autenticação via tokens.
+
+```bash
+Authorization: Bearer {token}
+```
+
+## Versionamento
+
+A API utiliza versionamento na URL:
+
+- v1: Versão atual
+- v2: Futuro
+
+## Headers Padrão
+
+```json
+{
+  "Content-Type": "application/json",
+  "Accept": "application/json",
+  "Authorization": "Bearer {token}"
+}
+```
+
+## Response Padrão
+
+### Sucesso
+
+```json
+{
+  "data": {},
+  "message": "Success",
+  "status": 200
+}
+```
+
+### Erro
+
+```json
+{
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Error message",
+    "details": {}
+  },
+  "status": 400
+}
+```
+
+## Status Codes
+
+| Código | Descrição |
+|--------|-----------|
+| 200 | OK - Requisição bem-sucedida |
+| 201 | Created - Recurso criado |
+| 204 | No Content - Sem conteúdo |
+| 400 | Bad Request - Requisição inválida |
+| 401 | Unauthorized - Não autenticado |
+| 403 | Forbidden - Sem permissão |
+| 404 | Not Found - Recurso não encontrado |
+| 422 | Unprocessable Entity - Validação falhou |
+| 429 | Too Many Requests - Rate limit excedido |
+| 500 | Internal Server Error - Erro no servidor |
+
+## Paginação
+
+Endpoints que retornam listas suportam paginação:
+
+```bash
+GET /api/v1/layers?page=1&per_page=15
+```
+
+Response:
+
+```json
+{
+  "data": [],
+  "links": {
+    "first": "http://localhost:8000/api/v1/layers?page=1",
+    "last": "http://localhost:8000/api/v1/layers?page=10",
+    "prev": null,
+    "next": "http://localhost:8000/api/v1/layers?page=2"
+  },
+  "meta": {
+    "current_page": 1,
+    "from": 1,
+    "last_page": 10,
+    "path": "http://localhost:8000/api/v1/layers",
+    "per_page": 15,
+    "to": 15,
+    "total": 150
+  }
+}
+```
+
+## Filtros
+
+Suporte a filtros via query params:
+
+```bash
+GET /api/v1/layers?type=polygon&is_active=true
+```
+
+## Ordenação
+
+```bash
+GET /api/v1/layers?sort=-created_at
+```
+
+- Ascendente: `sort=name`
+- Descendente: `sort=-name`
+
+## Busca
+
+```bash
+GET /api/v1/layers?search=termo
+```
+
+## Timestamps
+
+Todos os timestamps são retornados em formato ISO 8601:
+
+```
+2025-11-02T22:40:00.000000Z
+```
+
+## CORS
+
+CORS configurado para permitir requisições de:
+
+- http://localhost:8000
+- http://localhost:3000
+
+## Ambientes
+
+| Ambiente | URL | Documentação |
+|----------|-----|--------------|
+| Development | http://localhost:8000/api | Swagger UI |
+| Production | https://api.acto.com/api | API Docs |
+
