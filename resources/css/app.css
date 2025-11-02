@@ -6,6 +6,73 @@
 @source "../**/*.js";
 @source "../**/*.vue";
 
+/* ACTO Maps - Color Palette */
+:root {
+    /* Primary Green - Main Brand Color */
+    --color-primary: #00c853;
+    --color-primary-light: #00e676;
+    --color-primary-dark: #009688;
+    --color-primary-rgb: 0, 200, 83;
+    
+    /* Shades of Primary */
+    --color-primary-50: #e8f5e9;
+    --color-primary-100: #c8e6c9;
+    --color-primary-200: #a5d6a7;
+    --color-primary-300: #81c784;
+    --color-primary-400: #66bb6a;
+    --color-primary-500: #00c853;
+    --color-primary-600: #00b248;
+    --color-primary-700: #009c3d;
+    --color-primary-800: #008632;
+    --color-primary-900: #006b1f;
+    
+    /* Gradient */
+    --gradient-primary: linear-gradient(135deg, #00c853 0%, #009688 100%);
+    
+    /* Neutral Colors */
+    --color-text-primary: #1a1a1a;
+    --color-text-secondary: #6b7280;
+    --color-border: #e5e7eb;
+    --color-background: #ffffff;
+    --color-background-alt: #f9fafb;
+    
+    /* Status Colors */
+    --color-success: #10b981;
+    --color-error: #ef4444;
+    --color-warning: #f59e0b;
+    --color-info: #3b82f6;
+}
+
+/* Bootstrap Override - Apply primary color to Bootstrap components */
+.btn-primary,
+.bg-primary {
+    background-color: var(--color-primary) !important;
+    border-color: var(--color-primary) !important;
+}
+
+.text-primary {
+    color: var(--color-primary) !important;
+}
+
+.border-primary {
+    border-color: var(--color-primary) !important;
+}
+
+/* Focus states */
+.form-control:focus,
+.form-select:focus,
+input:focus,
+textarea:focus {
+    border-color: var(--color-primary) !important;
+    box-shadow: 0 0 0 0.25rem rgba(var(--color-primary-rgb), 0.25) !important;
+}
+
+/* Checkbox & Radio */
+.form-check-input:checked {
+    background-color: var(--color-primary) !important;
+    border-color: var(--color-primary) !important;
+}
+
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';

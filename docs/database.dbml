@@ -1,172 +1,135 @@
 ﻿// Database Documentation - ACTO Maps
 // DBML (Database Markup Language) Specification
+// License: MIT
+// Author: Kemersson Vinicius Gonçalves Teixeira
+// Date: 10/2025
 
 Project acto_maps {
   database_type: 'PostgreSQL'
-  Note: 'Sistema de gerenciamento de camadas geoespaciais com PostGIS'
+  Note: 'Sistema de gerenciamento de camadas geoespaciais com PostGIS organizados por schemas imperativos'
 }
 
-// Users Table
-Table users {
+// ============================================================================
+// SCHEMA: auth - Autenticação e Autorização
+// ============================================================================
+
+Table auth.users {
   id bigserial [pk, increment]
   name varchar(255) [not null]
   email varchar(255) [unique, not null]
   email_verified_at timestamp [null]
   password varchar(255) [not null, note: 'Argon2ID hash']
+  remember_token varchar(100) [null]
+  
+  // Two-Factor Authentication
   two_factor_secret text [null, note: 'Encrypted TOTP secret']
   two_factor_recovery_codes text [null, note: 'Encrypted recovery codes']
-  remember_token varchar(100) [null]
+  two_factor_confirmed_at timestamp [null]
+  
+  // WhatsApp 2FA
+  phone_number varchar(20) [null]
+  two_factor_whatsapp_enabled boolean [default: false]
+  
+  // GeoIP and Anomaly Detection
+  last_login_ip varchar(45) [null]
+  last_login_latitude decimal(10,8) [null]
+  last_login_longitude decimal(11,8) [null]
+  last_login_country varchar(2) [null]
+  last_login_at timestamp [null]
+  failed_login_attempts integer [default: 0]
+  locked_until timestamp [null]
+  
   created_at timestamp [default: `now()`]
   updated_at timestamp [default: `now()`]
   
   Indexes {
-    email [name: 'idx_users_email']
-    created_at [name: 'idx_users_created']
+    email [name: 'idx_auth_users_email']
+    last_login_ip [name: 'idx_auth_users_last_login_ip']
+    (last_login_latitude, last_login_longitude) [name: 'idx_auth_users_geo']
   }
   
-  Note: 'User accounts with 2FA support'
+  Note: 'User accounts with 2FA and anomaly detection'
 }
 
-// Roles Table (Laravel Permission)
-Table roles {
+Table auth.roles {
   id bigserial [pk, increment]
-  name varchar(255) [unique, not null]
+  name varchar(255) [not null]
   guard_name varchar(255) [not null, default: 'web']
   created_at timestamp [default: `now()`]
   updated_at timestamp [default: `now()`]
   
   Indexes {
-    (name, guard_name) [unique, name: 'roles_name_guard_unique']
+    (name, guard_name) [unique, name: 'auth_roles_name_guard_unique']
   }
   
   Note: 'Roles: admin, operator, viewer'
 }
 
-// Permissions Table (Laravel Permission)
-Table permissions {
+Table auth.permissions {
   id bigserial [pk, increment]
-  name varchar(255) [unique, not null]
+  name varchar(255) [not null]
   guard_name varchar(255) [not null, default: 'web']
   created_at timestamp [default: `now()`]
   updated_at timestamp [default: `now()`]
   
   Indexes {
-    (name, guard_name) [unique, name: 'permissions_name_guard_unique']
+    (name, guard_name) [unique, name: 'auth_permissions_name_guard_unique']
   }
   
   Note: 'Permissions: view_layer, create_layer, edit_layer, delete_layer, manage_users'
 }
 
-// Model Has Roles (Pivot)
-Table model_has_roles {
-  role_id bigint [ref: > roles.id, not null]
+Table auth.model_has_roles {
+  role_id bigint [ref: > auth.roles.id, not null]
   model_type varchar(255) [not null]
   model_id bigint [not null]
   
   Indexes {
-    (role_id, model_id, model_type) [pk, name: 'model_has_roles_pkey']
-    model_id [name: 'idx_model_has_roles_model']
+    (role_id, model_id, model_type) [pk, name: 'auth_model_has_roles_pkey']
+    model_id [name: 'idx_auth_model_has_roles_model']
   }
   
   Note: 'Polymorphic pivot table for user roles'
 }
 
-// Model Has Permissions (Pivot)
-Table model_has_permissions {
-  permission_id bigint [ref: > permissions.id, not null]
+Table auth.model_has_permissions {
+  permission_id bigint [ref: > auth.permissions.id, not null]
   model_type varchar(255) [not null]
   model_id bigint [not null]
   
   Indexes {
-    (permission_id, model_id, model_type) [pk, name: 'model_has_permissions_pkey']
-    model_id [name: 'idx_model_has_permissions_model']
+    (permission_id, model_id, model_type) [pk, name: 'auth_model_has_permissions_pkey']
+    model_id [name: 'idx_auth_model_has_permissions_model']
   }
   
   Note: 'Polymorphic pivot table for direct user permissions'
 }
 
-// Role Has Permissions (Pivot)
-Table role_has_permissions {
-  permission_id bigint [ref: > permissions.id, not null]
-  role_id bigint [ref: > roles.id, not null]
+Table auth.role_has_permissions {
+  permission_id bigint [ref: > auth.permissions.id, not null]
+  role_id bigint [ref: > auth.roles.id, not null]
   
   Indexes {
-    (permission_id, role_id) [pk, name: 'role_has_permissions_pkey']
-    role_id [name: 'idx_role_has_permissions_role']
+    (permission_id, role_id) [pk, name: 'auth_role_has_permissions_pkey']
+    role_id [name: 'idx_auth_role_has_permissions_role']
   }
   
   Note: 'Pivot table linking roles to permissions'
 }
 
-// Layers Table (Main Entity)
-Table layers {
-  id bigserial [pk, increment]
-  name varchar(255) [not null]
-  description text [null]
-  type varchar(50) [not null, note: 'point, line, polygon']
-  source varchar(500) [null, note: 'URL or S3 path to layer file']
-  geometry geometry [null, note: 'PostGIS geometry column']
-  metadata jsonb [null, note: 'Additional layer metadata']
-  is_active boolean [not null, default: true]
-  created_by bigint [ref: > users.id, not null]
-  created_at timestamp [default: `now()`]
-  updated_at timestamp [default: `now()`]
-  deleted_at timestamp [null, note: 'Soft delete']
-  
-  Indexes {
-    name [name: 'idx_layers_name']
-    is_active [name: 'idx_layers_is_active']
-    created_by [name: 'idx_layers_created_by']
-    geometry [type: gist, name: 'idx_layers_geometry_gist']
-    created_at [name: 'idx_layers_created_at']
-    deleted_at [name: 'idx_layers_deleted_at']
-  }
-  
-  Note: 'Map layers with geospatial data'
-}
-
-// Sessions Table
-Table sessions {
-  id varchar(255) [pk]
-  user_id bigint [ref: > users.id, null]
-  ip_address varchar(45) [null]
-  user_agent text [null]
-  payload text [not null]
-  last_activity integer [not null]
-  
-  Indexes {
-    user_id [name: 'idx_sessions_user']
-    last_activity [name: 'idx_sessions_last_activity']
-  }
-  
-  Note: 'User sessions storage'
-}
-
-// Audit Logs Table
-Table audit_logs {
-  id bigserial [pk, increment]
-  user_id bigint [ref: > users.id, null]
-  action varchar(50) [not null, note: 'create, update, delete, view']
-  model varchar(100) [not null, note: 'Layer, User, etc']
-  model_id bigint [null]
-  old_values jsonb [null]
-  new_values jsonb [null]
-  ip_address inet [null]
-  user_agent text [null]
+Table auth.password_reset_tokens {
+  email varchar(255) [pk]
+  token varchar(255) [not null]
   created_at timestamp [default: `now()`]
   
   Indexes {
-    user_id [name: 'idx_audit_user']
-    (model, model_id) [name: 'idx_audit_model']
-    created_at [name: 'idx_audit_created']
-    action [name: 'idx_audit_action']
+    email [name: 'idx_auth_password_reset_email']
   }
   
-  Note: 'Audit trail for all critical actions'
+  Note: 'Password reset tokens'
 }
 
-// Personal Access Tokens (Laravel Sanctum)
-Table personal_access_tokens {
+Table auth.personal_access_tokens {
   id bigserial [pk, increment]
   tokenable_type varchar(255) [not null]
   tokenable_id bigint [not null]
@@ -179,15 +142,75 @@ Table personal_access_tokens {
   updated_at timestamp [default: `now()`]
   
   Indexes {
-    (tokenable_type, tokenable_id) [name: 'idx_personal_access_tokens_tokenable']
-    token [unique, name: 'idx_personal_access_tokens_token']
+    (tokenable_type, tokenable_id) [name: 'idx_auth_personal_access_tokens_tokenable']
+    token [unique, name: 'idx_auth_personal_access_tokens_token']
   }
   
   Note: 'API tokens for Sanctum authentication'
 }
 
-// Failed Login Attempts
-Table failed_login_attempts {
+// ============================================================================
+// SCHEMA: geo - Dados Geográficos
+// ============================================================================
+
+Table geo.layers {
+  id bigserial [pk, increment]
+  name varchar(100) [not null]
+  geometry geometry [not null, note: 'PostGIS geometry(Geometry, 4326)']
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  
+  Indexes {
+    name [name: 'idx_geo_layers_name']
+    geometry [type: gist, name: 'idx_geo_layers_geometry_gist']
+  }
+  
+  Note: 'Map layers with geospatial data (GeoJSON)'
+}
+
+// ============================================================================
+// SCHEMA: security - Segurança e Auditoria
+// ============================================================================
+
+Table security.sessions {
+  id varchar(255) [pk]
+  user_id bigint [ref: > auth.users.id, null]
+  ip_address varchar(45) [null]
+  user_agent text [null]
+  payload text [not null]
+  last_activity integer [not null]
+  
+  Indexes {
+    user_id [name: 'idx_security_sessions_user']
+    last_activity [name: 'idx_security_sessions_last_activity']
+  }
+  
+  Note: 'User sessions storage'
+}
+
+Table security.audit_logs {
+  id bigserial [pk, increment]
+  user_id bigint [ref: > auth.users.id, null]
+  action varchar(50) [not null, note: 'create, update, delete, view']
+  model varchar(100) [not null, note: 'Layer, User, etc']
+  model_id bigint [null]
+  old_values jsonb [null]
+  new_values jsonb [null]
+  ip_address inet [null]
+  user_agent text [null]
+  created_at timestamp [default: `now()`]
+  
+  Indexes {
+    user_id [name: 'idx_security_audit_user']
+    (model, model_id) [name: 'idx_security_audit_model']
+    created_at [name: 'idx_security_audit_created']
+    action [name: 'idx_security_audit_action']
+  }
+  
+  Note: 'Audit trail for all critical actions'
+}
+
+Table security.failed_login_attempts {
   id bigserial [pk, increment]
   email varchar(255) [not null]
   ip_address inet [not null]
@@ -195,56 +218,144 @@ Table failed_login_attempts {
   attempted_at timestamp [default: `now()`]
   
   Indexes {
-    email [name: 'idx_failed_login_email']
-    ip_address [name: 'idx_failed_login_ip']
-    attempted_at [name: 'idx_failed_login_attempted']
+    email [name: 'idx_security_failed_login_email']
+    ip_address [name: 'idx_security_failed_login_ip']
+    attempted_at [name: 'idx_security_failed_login_attempted']
   }
   
   Note: 'Track failed login attempts for security'
 }
 
-// Password Reset Tokens
-Table password_reset_tokens {
-  email varchar(255) [pk]
-  token varchar(255) [not null]
-  created_at timestamp [default: `now()`]
+Table security.blacklisted_tokens {
+  id bigserial [pk, increment]
+  token_hash varchar(255) [unique, not null]
+  user_id bigint [ref: > auth.users.id, not null]
+  reason varchar(255) [null, note: 'anomaly_detected, manual_revoke, etc']
+  blacklisted_at timestamp [default: `now()`]
+  expires_at timestamp [not null]
   
   Indexes {
-    email [name: 'idx_password_reset_email']
+    token_hash [unique, name: 'idx_security_blacklisted_tokens_hash']
+    user_id [name: 'idx_security_blacklisted_tokens_user']
+    expires_at [name: 'idx_security_blacklisted_tokens_expires']
   }
   
-  Note: 'Password reset tokens'
+  Note: 'Blacklisted tokens for anomaly detection'
 }
 
+// ============================================================================
+// SCHEMA: storage - Armazenamento
+// ============================================================================
+
+Table storage.cache {
+  key varchar(255) [pk]
+  value text [not null]
+  expiration integer [not null]
+  
+  Indexes {
+    key [name: 'idx_storage_cache_key']
+  }
+  
+  Note: 'Application cache storage'
+}
+
+Table storage.cache_locks {
+  key varchar(255) [pk]
+  owner varchar(255) [not null]
+  expiration integer [not null]
+  
+  Indexes {
+    key [name: 'idx_storage_cache_locks_key']
+  }
+  
+  Note: 'Cache lock mechanism'
+}
+
+Table storage.jobs {
+  id bigserial [pk, increment]
+  queue varchar(255) [not null]
+  payload text [not null]
+  attempts integer [not null]
+  reserved_at integer [null]
+  available_at integer [not null]
+  created_at integer [not null]
+  
+  Indexes {
+    (queue, reserved_at) [name: 'idx_storage_jobs_queue_reserved']
+  }
+  
+  Note: 'Queue jobs storage'
+}
+
+Table storage.job_batches {
+  id varchar(255) [pk]
+  name varchar(255) [not null]
+  total_jobs integer [not null]
+  pending_jobs integer [not null]
+  failed_jobs integer [not null]
+  failed_job_ids text [not null]
+  options text [null]
+  cancelled_at integer [null]
+  created_at integer [not null]
+  finished_at integer [null]
+  
+  Note: 'Batch jobs storage'
+}
+
+Table storage.failed_jobs {
+  id bigserial [pk, increment]
+  uuid varchar(255) [unique, not null]
+  connection text [not null]
+  queue text [not null]
+  payload text [not null]
+  exception text [not null]
+  failed_at timestamp [default: `now()`]
+  
+  Indexes {
+    uuid [unique, name: 'idx_storage_failed_jobs_uuid']
+  }
+  
+  Note: 'Failed queue jobs'
+}
+
+// ============================================================================
 // Relationships
-Ref: layers.created_by > users.id [delete: cascade]
-Ref: audit_logs.user_id > users.id [delete: set null]
-Ref: sessions.user_id > users.id [delete: cascade]
+// ============================================================================
 
-// Views
-// View for active layers with creator info
-TableGroup "Layer Management" {
-  layers
-  users
-  audit_logs
-}
+Ref: security.sessions.user_id > auth.users.id [delete: cascade]
+Ref: security.audit_logs.user_id > auth.users.id [delete: set null]
+Ref: security.blacklisted_tokens.user_id > auth.users.id [delete: cascade]
+
+// ============================================================================
+// Table Groups
+// ============================================================================
 
 TableGroup "Authentication & Authorization" {
-  users
-  roles
-  permissions
-  model_has_roles
-  model_has_permissions
-  role_has_permissions
-  sessions
-  personal_access_tokens
-  failed_login_attempts
-  password_reset_tokens
+  auth.users
+  auth.roles
+  auth.permissions
+  auth.model_has_roles
+  auth.model_has_permissions
+  auth.role_has_permissions
+  auth.password_reset_tokens
+  auth.personal_access_tokens
+}
+
+TableGroup "Geospatial Data" {
+  geo.layers
 }
 
 TableGroup "Security & Audit" {
-  audit_logs
-  failed_login_attempts
-  sessions
+  security.sessions
+  security.audit_logs
+  security.failed_login_attempts
+  security.blacklisted_tokens
 }
 
+TableGroup "Storage & Jobs" {
+  storage.cache
+  storage.cache_locks
+  storage.jobs
+  storage.job_batches
+  storage.failed_jobs
+}

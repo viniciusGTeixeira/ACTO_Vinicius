@@ -13,7 +13,7 @@
 %%{init: {'theme':'forest'}}%%
 flowchart TD
     subgraph frontend["Frontend Layer"]
-        A1[Admin Panel<br/>Filament v3<br/>Gerenciar Camadas]
+        A1[Admin Panel<br/>Filament v4<br/>Gerenciar Camadas]
         A2[Frontend Público<br/>Blade + Bootstrap<br/>Visualizar Mapas + ArcGIS]
     end
     
@@ -83,31 +83,52 @@ flowchart TD
 ```
 Teste_ACTO/
 ├── app/
-│   ├── Filament/                      # ADMIN PANEL (Filament v3)
+│   ├── Contracts/                     # INTERFACES (SOLID)
+│   │   ├── Repositories/
+│   │   │   └── LayerRepositoryInterface.php
+│   │   └── Services/
+│   │       └── LayerServiceInterface.php
+│   ├── Filament/                      # ADMIN PANEL (Filament v4)
 │   │   ├── Resources/
-│   │   │   ├── LayerResource.php      # CRUD de camadas
-│   │   │   └── UserResource.php       # CRUD de usuários
+│   │   │   └── Layers/
+│   │   │       ├── LayerResource.php  # CRUD de camadas
+│   │   │       ├── Schemas/           # Form schemas
+│   │   │       │   └── LayerForm.php
+│   │   │       ├── Tables/            # Table configurations
+│   │   │       │   └── LayersTable.php
+│   │   │       └── Pages/             # Resource pages
+│   │   │           ├── CreateLayer.php
+│   │   │           ├── EditLayer.php
+│   │   │           └── ListLayers.php
 │   │   ├── Pages/
-│   │   │   └── Dashboard.php          # Dashboard customizado
+│   │   │   └── Dashboard.php          # Dashboard (futuro)
 │   │   └── Widgets/
-│   │       └── StatsOverview.php      # Widgets do dashboard
+│   │       └── StatsOverview.php      # Widgets (futuro)
 │   ├── Http/
 │   │   ├── Controllers/
-│   │   │   ├── API/
+│   │   │   ├── Api/
 │   │   │   │   └── LayerController.php    # API REST
 │   │   │   └── MapController.php          # Frontend público
-│   │   └── Middleware/
-│   │       ├── CheckRole.php
-│   │       └── Check2FA.php
+│   │   ├── Requests/                  # FORM REQUESTS
+│   │   │   ├── StoreLayerRequest.php
+│   │   │   └── UpdateLayerRequest.php
+│   │   └── Rules/                     # CUSTOM VALIDATION RULES
+│   │       └── ValidGeojsonFile.php
 │   ├── Models/
 │   │   ├── User.php
 │   │   └── Layer.php
-│   ├── Repositories/
+│   ├── Repositories/                  # DATA ACCESS LAYER
 │   │   └── LayerRepository.php
-│   ├── Services/
+│   ├── Services/                      # BUSINESS LOGIC LAYER
 │   │   └── LayerService.php
-│   └── Helpers/
-│       └── helpers.php
+│   ├── Helpers/                       # HELPER FUNCTIONS
+│   │   ├── ResponseHelper.php
+│   │   └── GeometryHelper.php
+│   └── Providers/
+│       ├── AppServiceProvider.php
+│       ├── RepositoryServiceProvider.php  # DI BINDINGS
+│       └── Filament/
+│           └── AdminPanelProvider.php
 ├── database/
 │   ├── migrations/
 │   └── seeders/
@@ -139,43 +160,99 @@ Teste_ACTO/
 
 ### 4.1 Tabelas Principais
 
-#### users
+#### auth.users
 ```sql
-- id (bigint, PK)
-- name (varchar)
-- email (varchar, unique)
-- password (varchar) -- Argon2ID hash
+- id (bigint, PK, auto-increment)
+- name (varchar(255), NOT NULL)
+- email (varchar(255), unique, NOT NULL)
+- password (varchar(255), NOT NULL) -- Argon2ID hash
 - two_factor_secret (text, nullable)
 - two_factor_recovery_codes (text, nullable)
+- two_factor_confirmed_at (timestamp, nullable)
+- phone_number (varchar(20), nullable)
+- two_factor_whatsapp_enabled (boolean, default: false)
+- last_login_ip (varchar(45), nullable, indexed)
+- last_login_latitude (decimal(10,8), nullable)
+- last_login_longitude (decimal(11,8), nullable)
+- last_login_country (varchar(2), nullable)
+- last_login_at (timestamp, nullable)
+- failed_login_attempts (integer, default: 0)
+- locked_until (timestamp, nullable)
 - timestamps
+- Indexes: (email), (last_login_ip), (last_login_latitude, last_login_longitude)
 ```
 
-#### roles & permissions
+**Schema**: `auth` (organização por schemas imperativos)  
+**2FA**: Suporta TOTP e WhatsApp via Evolution API  
+**GeoIP**: Campos para detecção de anomalias geográficas
+
+#### auth.roles & auth.permissions
 - Gerenciadas pelo Laravel Permission (spatie/laravel-permission)
+- Tabelas: `auth.roles`, `auth.permissions`, `auth.model_has_roles`, `auth.model_has_permissions`, `auth.role_has_permissions`
 
-#### layers
+#### geo.layers
 ```sql
-- id (bigint, PK)
-- name (varchar, indexed)
-- description (text)
-- type (enum: 'point', 'line', 'polygon')
-- source (varchar) -- URL or file reference
-- geometry (geometry) -- PostGIS type
-- metadata (jsonb)
-- is_active (boolean, default: true, indexed)
-- created_by (bigint, FK -> users.id)
-- timestamps
-- Indexes: (name), (is_active), (created_by), GIST(geometry)
+- id (bigint, PK, auto-increment)
+- name (varchar(100), NOT NULL, indexed)
+- geometry (geometry(Geometry, 4326), NOT NULL) -- PostGIS geometry with SRID 4326
+- created_at (timestamp)
+- updated_at (timestamp)
+- Indexes: (name), GIST(geometry)
 ```
+
+**Schema**: `geo` (organização por schemas imperativos)  
+**Geometria**: Suporta todos os tipos do GeoJSON (Point, LineString, Polygon, Multi*)
 
 ## 5. APIs
 
-### 5.1 Endpoints Principais
+### 5.1 Endpoints Implementados
 
 #### GET /api/layers
-Descrição: Retorna todas as camadas ativas em formato GeoJSON
+**Descrição**: Retorna todas as camadas  
+**Autenticação**: Não requerida  
+**Rate Limit**: 60 req/min por IP
 
-Response:
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Layers retrieved successfully",
+  "data": [
+    {
+      "id": 1,
+      "name": "Camada Exemplo",
+      "created_at": "2025-11-02T12:00:00.000000Z",
+      "updated_at": "2025-11-02T12:00:00.000000Z"
+    }
+  ]
+}
+```
+
+#### GET /api/layers/{id}
+**Descrição**: Retorna detalhes de uma camada específica  
+**Autenticação**: Não requerida  
+**Rate Limit**: 60 req/min por IP
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Layer retrieved successfully",
+  "data": {
+    "id": 1,
+    "name": "Camada Exemplo",
+    "created_at": "2025-11-02T12:00:00.000000Z",
+    "updated_at": "2025-11-02T12:00:00.000000Z"
+  }
+}
+```
+
+#### GET /api/layers/geojson/all
+**Descrição**: Retorna todas as camadas como GeoJSON FeatureCollection  
+**Autenticação**: Não requerida  
+**Rate Limit**: 60 req/min por IP
+
+**Response**:
 ```json
 {
   "type": "FeatureCollection",
@@ -184,9 +261,9 @@ Response:
       "type": "Feature",
       "id": 1,
       "properties": {
-        "name": "Camada 1",
-        "description": "Descrição",
-        "type": "polygon"
+        "name": "Camada Exemplo",
+        "created_at": "2025-11-02T12:00:00.000000Z",
+        "updated_at": "2025-11-02T12:00:00.000000Z"
       },
       "geometry": {
         "type": "Polygon",
@@ -194,6 +271,28 @@ Response:
       }
     }
   ]
+}
+```
+
+#### GET /api/layers/{id}/geojson
+**Descrição**: Retorna uma camada específica como GeoJSON Feature  
+**Autenticação**: Não requerida  
+**Rate Limit**: 60 req/min por IP
+
+**Response**:
+```json
+{
+  "type": "Feature",
+  "id": 1,
+  "properties": {
+    "name": "Camada Exemplo",
+    "created_at": "2025-11-02T12:00:00.000000Z",
+    "updated_at": "2025-11-02T12:00:00.000000Z"
+  },
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [[...]]
+  }
 }
 ```
 

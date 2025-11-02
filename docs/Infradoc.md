@@ -76,46 +76,45 @@ AWS_USE_PATH_STYLE_ENDPOINT=true
 
 ### 3.2 PostgreSQL + PostGIS (Container)
 
-Imagem: `postgis/postgis:16-3.4`  
+Imagem: `postgis/postgis:16-3.4-alpine`  
 Porta: 5432 (mapeada para host)  
 Volume: `postgres_data`
 
 Extensões:
-- PostGIS 3.4
-- pg_trgm (para busca full-text)
-- uuid-ossp (para UUIDs)
+- PostGIS 3.4 (habilitada via migrations)
 
-Configuração:
+Schemas criados:
+- `auth` - Autenticação e autorização
+- `geo` - Dados geográficos
+- `security` - Segurança e auditoria  
+- `storage` - Cache e filas
+
+Configuração (podman-compose.yml):
 ```yaml
 postgres:
-  image: postgis/postgis:16-3.4
+  image: postgis/postgis:16-3.4-alpine
   container_name: acto-postgres
   environment:
     POSTGRES_DB: laravel
     POSTGRES_USER: laravel_user
     POSTGRES_PASSWORD: secret
-    POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
-  ports:
-    - "5432:5432"
+    PGDATA: /var/lib/postgresql/data/postgres_data
   volumes:
     - postgres_data:/var/lib/postgresql/data
-    - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+  ports:
+    - "5432:5432"
   networks:
-    - podman-acto
+    - acto-network
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U laravel_user -d laravel"]
+    interval: 10s
+    timeout: 5s
+    retries: 5
+    start_period: 10s
   restart: unless-stopped
 ```
 
-Script de Inicialização (init.sql):
-```sql
--- Enable extensions
-CREATE EXTENSION IF NOT EXISTS postgis;
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- Create indexes for performance
-CREATE INDEX IF NOT EXISTS idx_layers_geometry ON layers USING GIST(geometry);
-CREATE INDEX IF NOT EXISTS idx_layers_name ON layers USING GIN(name gin_trgm_ops);
-```
+**Observação**: Não há script `init.sql`. Schemas, extensões e índices são criados via Laravel Migrations.
 
 ### 3.3 MinIO (Container)
 

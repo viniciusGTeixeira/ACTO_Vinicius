@@ -35,4 +35,28 @@ return [
         ],
     ],
 
+    // ArcGIS Maps SDK Configuration
+    'arcgis' => [
+        'api_key' => env('ARCGIS_API_KEY'),
+        'basemap' => env('ARCGIS_BASEMAP', 'topo-vector'),
+        'center_lat' => env('ARCGIS_CENTER_LAT', -15.7801),
+        'center_lng' => env('ARCGIS_CENTER_LNG', -47.9292),
+        'zoom_level' => env('ARCGIS_ZOOM_LEVEL', 4),
+    ],
+
+    // Evolution API (WhatsApp) Configuration
+    'evolution_api' => [
+        'url' => env('EVOLUTION_API_URL'),
+        'key' => env('EVOLUTION_API_KEY'),
+        'instance_name' => env('EVOLUTION_INSTANCE_NAME'),
+    ],
+
+    // GeoIP Configuration
+    'geoip' => [
+        'enabled' => env('GEOIP_ENABLED', true),
+        'api_url' => env('GEOIP_API_URL', 'https://ipapi.co'),
+        'api_key' => env('GEOIP_API_KEY'),
+        'cache_duration' => env('GEOIP_CACHE_DURATION', 86400),
+    ],
+
 ];

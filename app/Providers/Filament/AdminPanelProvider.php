@@ -26,11 +26,24 @@ class AdminPanelProvider extends PanelProvider
         return $panel
             ->default()
             ->id('admin')
-            ->path('admin')
-            ->login()
+            ->path('painel')
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => [
+                    50 => '#e8f5e9',
+                    100 => '#c8e6c9',
+                    200 => '#a5d6a7',
+                    300 => '#81c784',
+                    400 => '#66bb6a',
+                    500 => '#00c853',
+                    600 => '#00b248',
+                    700 => '#009c3d',
+                    800 => '#008632',
+                    900 => '#006b1f',
+                    950 => '#004d16',
+                ],
             ])
+            ->brandName('ACTO Maps')
+            ->favicon(asset('favicon.ico'))
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([

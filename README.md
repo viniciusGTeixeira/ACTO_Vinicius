@@ -1,373 +1,289 @@
-﻿# ACTO Maps - Sistema de Gerenciamento de Camadas Geoespaciais
+﻿# ACTO Maps
 
-Sistema de gerenciamento e visualização de camadas geoespaciais usando Laravel 12, ArcGIS Maps SDK v4, PostgreSQL + PostGIS e MinIO.
+Sistema de Gestão Geoespacial com visualização de mapas interativos.
+ 
+> **📚 [Documentação Completa](docs/)** - TRD, PRD, BRD, Infraestrutura, Segurança, API, Storage  
 
-## Stack Tecnológico
+## Instalação Rápida
 
-- Backend: Laravel 12 + PHP 8.2
-- Admin Panel: Filament v4 (área administrativa /painel)
-- Frontend Público: Blade + Bootstrap 5 + jQuery + ArcGIS Maps SDK v4
-- Database: PostgreSQL 16 + PostGIS
-- Storage: MinIO (S3-compatible)
-- Containers: Podman (apenas PostgreSQL e MinIO)
+### Requisitos
 
-## Arquitetura
-
-```
-/ (PÚBLICO) - Mapa com ArcGIS SDK v4 (sem autenticação)
-/painel (ADMIN) - Filament com autenticação + roles + 2FA
-```
-
-## Pré-requisitos
-
-- PHP 8.2+ com extensões: pdo_pgsql, pgsql, mbstring, xml, bcmath, gd, zip, opcache
+- PHP 8.2+
 - Composer
-- Podman ou Docker
-- Git
+- Node.js 20+
+- Podman Desktop
+- PostgreSQL Client (psql)
 
-## Setup Inicial
+### Instalação Automatizada (Windows)
 
-### 1. Clonar Repositório
-
-```powershell
-git clone <repository-url>
-cd Teste_ACTO
-```
-
-### 2. Instalar Dependências
+Execute um único comando no PowerShell:
 
 ```powershell
-composer install
+.\setup.ps1
 ```
 
-### 3. Configurar Ambiente
+Este script irá:
+- Verificar todos os requisitos
+- Instalar dependências PHP e Node.js
+- Configurar banco de dados PostgreSQL + PostGIS
+- Configurar storage MinIO (S3-compatible)
+- Executar migrations
+- Criar usuário administrador
+- Compilar assets
 
-```powershell
-Copy-Item env.example .env
-php artisan key:generate
-```
-
-Veja todas as variáveis de ambiente em `docs/Environment-Variables.md`
-
-### 4. Gerar Certificados (Opcional para Produção)
-
-```powershell
-.\scripts\generate-certificates.ps1
-```
-
-Este script gera:
-- Certificado CA e chave privada
-- Par de chaves RSA 4096
-- Arquivo env-snippet.txt pronto para copiar
-
-### 5. Configurar .env
-
-```env
-# Database
-DB_CONNECTION=pgsql
-DB_HOST=127.0.0.1
-DB_PORT=5432
-DB_DATABASE=laravel
-DB_USERNAME=laravel_user
-DB_PASSWORD=laravel_password
-
-# MinIO
-AWS_ENDPOINT=http://127.0.0.1:9000
-AWS_ACCESS_KEY_ID=minioadmin
-AWS_SECRET_ACCESS_KEY=minioadmin123
-AWS_BUCKET=layers
-
-# Evolution API (WhatsApp 2FA)
-EVOLUTION_API_URL=https://sua-evolution-api.com
-EVOLUTION_API_KEY=sua_api_key
-EVOLUTION_INSTANCE_NAME=acto_maps
-TWOFACTOR_WHATSAPP_ENABLED=true
-
-# GeoIP & Anomaly Detection
-GEOIP_API_URL=https://ipapi.co
-ANOMALY_DETECTION_ENABLED=true
-
-# RSA 4096 Encryption
-RSA_PRIVATE_KEY="base64_encoded_private_key"
-RSA_PUBLIC_KEY="base64_encoded_public_key"
-RSA_ENCRYPTION_ENABLED=true
-```
-
-### 6. Iniciar Containers
-
-```powershell
-podman-compose up -d
-podman-compose ps
-```
-
-Serviços disponíveis:
-- PostgreSQL + PostGIS: localhost:5432
-- MinIO: localhost:9000 (API) e localhost:9001 (Console)
-- Mintlify (Documentação): localhost:3000
-
-### 7. Configurar MinIO
-
-Acessar http://localhost:9001 (minioadmin/minioadmin123) e criar bucket "layers".
-
-### 8. Rodar Migrations
-
-```powershell
-php artisan migrate
-php artisan db:seed
-```
-
-### 8. Iniciar Laravel
+### Iniciar o Servidor
 
 ```powershell
 php artisan serve
 ```
 
-Aplicação disponível em http://localhost:8000
+Acesse: **http://localhost:8000**
 
-## Acessos
+## Credenciais Padrão
 
-| URL | Autenticação | Descrição |
-|-----|--------------|-----------|
-| http://localhost:8000 | Público | Mapa com ArcGIS |
-| http://localhost:8000/painel | Login Required | Filament Admin Panel |
-| http://localhost:3000 | Público | Mintlify - Documentação |
-| http://localhost:9001 | - | MinIO Console |
-| localhost:5432 | - | PostgreSQL |
+### Painel Administrativo
+- **URL**: http://localhost:8000/painel
+- **Email**: admin@acto.com
+- **Senha**: password
 
-### Roles do Sistema
+### MinIO Console
+- **URL**: http://localhost:9001
+- **Usuário**: minioadmin
+- **Senha**: minioadmin
 
-| Role | Acesso /painel | Permissões | 2FA |
-|------|----------------|------------|-----|
-| Admin | Sim | CRUD completo + usuários | Obrigatório |
-| Operator | Sim | CRUD camadas | Opcional |
-| Viewer | Sim | Apenas leitura | Opcional |
+## Estrutura do Projeto
+
+```
+acto-maps/
+├── app/
+│   ├── Filament/            # Painel administrativo
+│   ├── Http/Controllers/    # Controllers da API e Web
+│   ├── Models/              # Models Eloquent
+│   └── Repositories/        # Repositórios (padrão Repository)
+├── database/
+│   ├── migrations/          # Migrations do banco
+│   ├── seeders/             # Seeders
+│   └── init/                # Scripts de inicialização do DB
+├── docs/                    # Documentação completa
+├── resources/
+│   └── views/
+│       ├── auth/            # Views de autenticação
+│       └── map/             # View do mapa público
+├── routes/
+│   ├── api.php              # Rotas da API
+│   └── web.php              # Rotas web
+└── setup.ps1                # Script de instalação automatizada
+```
+
+## Funcionalidades
+
+### Principais
+
+- **Painel Administrativo** (Filament 4.0)
+  - CRUD completo de camadas geográficas
+  - Upload de arquivos GeoJSON
+  - Gerenciamento de usuários e permissões
+  
+- **Mapa Interativo Público**
+  - Visualização de todas as camadas cadastradas
+  - Toggle de visibilidade por camada
+  - Powered by ArcGIS Maps SDK v4
+  
+- **Autenticação Segura**
+  - Laravel Fortify
+  - Autenticação de dois fatores (2FA)
+  - Hash de senha com Argon2ID
+
+- **Storage S3-Compatible**
+  - MinIO para armazenamento de arquivos
+  - Backup automático configurável
+
+- **Banco de Dados Geoespacial**
+  - PostgreSQL 16 + PostGIS 3.4
+  - Suporte completo a geometrias
+  - Índices espaciais otimizados
+
+## Uso
+
+### Criar uma Camada
+
+1. Acesse http://localhost:8000/painel
+2. Faça login com as credenciais admin
+3. Clique em **"Camadas"** no menu
+4. Clique em **"Novo Layer"**
+5. Preencha o nome e faça upload de um arquivo GeoJSON válido
+6. Salve
+
+### Visualizar no Mapa
+
+1. Acesse http://localhost:8000/
+2. As camadas aparecerão automaticamente no mapa
+3. Use o painel lateral para ativar/desativar camadas
 
 ### API REST
 
-| Endpoint | Autenticação | Acesso |
-|----------|--------------|--------|
-| GET /api/layers | Pública | Todos |
-| POST /api/layers | Sanctum | Admin, Operator |
-| PUT /api/layers/{id} | Sanctum | Admin, Operator |
-| DELETE /api/layers/{id} | Sanctum | Admin |
+Endpoint disponível em `/api/layers`:
 
-### Criar Usuário Admin
+```bash
+# Listar todas as camadas
+curl http://localhost:8000/api/layers
 
-```powershell
-php artisan make:filament-user
+# Obter GeoJSON de uma camada
+curl http://localhost:8000/api/layers/{id}/geojson
 ```
 
 ## Comandos Úteis
 
-### Containers
+### Desenvolvimento
 
 ```powershell
-podman-compose up -d      # Iniciar
-podman-compose down       # Parar
-podman-compose ps         # Status
-podman-compose logs -f    # Logs
-```
+# Iniciar servidor de desenvolvimento
+php artisan serve
 
-### Laravel
+# Watch de assets (em outro terminal)
+npm run dev
 
-```powershell
-php artisan cache:clear
-php artisan config:clear
-php artisan route:clear
+# Ver logs dos containers
+podman-compose logs -f
+
+# Executar migrations
 php artisan migrate
-php artisan test
+
+# Criar novo seeder
+php artisan make:seeder NomeSeeder
 ```
 
-### Database
+### Produção
 
 ```powershell
-podman-compose exec postgres psql -U laravel_user -d laravel
-```
+# Build de assets para produção
+npm run build
 
-## Licença
+# Limpar caches
+php artisan optimize:clear
 
-LICENÇA DE AVALIAÇÃO TÉCNICA — USO NÃO-COMERCIAL
-
-Copyright (c) 2025 - Kemersson Vinicius Gonçalves Teixeira. Todos os direitos reservados.
-
-Este projeto está licenciado exclusivamente para fins de **avaliação técnica**. É proibido qualquer uso comercial, distribuição pública ou incorporação em produtos, serviços ou projetos sem autorização expressa do autor.
-
-**Principais Restrições:**
-- Uso permitido APENAS para avaliação técnica do autor
-- Proibido uso comercial, distribuição ou sublicenciamento
-- Proibido incorporar código em sistemas ou produtos
-- Propriedade intelectual permanece com o autor
-
-Para licenciamento comercial ou autorizações especiais, contate: kemerssonvinicius@gmail.com
-
-Veja o texto completo da licença em: [license.txt](license.txt)
-
-## Documentação
-
-### Visualização Interativa (Mintlify)
-
-Acesse a documentação interativa em: http://localhost:3000
-
-```powershell
-# Iniciar Mintlify (já incluído no podman-compose)
-podman-compose up -d mintlify
-```
-
-### Arquivos Markdown
-
-- [Escopo do Projeto](docs/ESCOPO.md) - Frontend público vs autenticado
-- [Product Requirements](docs/PRD.md) - Requisitos do produto
-- [Technical Requirements](docs/TRD.md) - Requisitos técnicos
-- [Business Requirements](docs/BRD.md) - Requisitos de negócio
-- [Test-Driven Development](docs/TDD.md) - Estratégia de testes
-- [Infraestrutura](docs/Infradoc.md) - Setup e DevOps
-- [Segurança](docs/Seguranca.md) - Políticas de segurança
-- [Evolution API](docs/Evolution-API.md) - WhatsApp 2FA
-- [Environment Variables](docs/Environment-Variables.md) - Variáveis de ambiente
-- [Database Schema](docs/database.dbml) - Estrutura do banco
-
-## Testes (TDD)
-
-### Configurar Ambiente de Testes
-
-```powershell
-# 1. Configurar banco de dados de testes
-.\scripts\setup-test-db.ps1
-
-# 2. Executar migrations
-php artisan migrate --env=testing
-```
-
-### Executar Testes
-
-```powershell
-# Todos os testes
-php artisan test
-
-# Ou use o script
-.\scripts\test.ps1
-
-# Testes específicos
-.\scripts\test.ps1 -Type unit
-.\scripts\test.ps1 -Type feature -Coverage
-.\scripts\test.ps1 -Filter "layer"
-
-# Gerar relatório de coverage
-.\scripts\coverage-report.ps1 -Open
-```
-
-### Estrutura de Testes
-
-- `tests/Unit/` - Testes unitários (rápidos, isolados)
-- `tests/Feature/` - Testes de feature (com database)
-- `tests/Integration/` - Testes de integração (PostGIS, MinIO, APIs)
-- `tests/Browser/` - Testes E2E (Laravel Dusk)
-
-### Métricas
-
-- Coverage mínimo: 80%
-- Tempo de execução: < 2 minutos
-- Ferramentas: Pest PHP, PHPUnit, Mockery
-
-Documentação completa: [TDD.md](docs/TDD.md)
-
-## Segurança
-
-### Autenticação
-- Senhas: Argon2ID hash
-- 2FA: TOTP (Google Authenticator)
-- API: Laravel Sanctum
-- Rate Limiting ativo
-- CORS configurado
-
-### 2FA via WhatsApp
-- Integração com Evolution API v2
-- Códigos enviados via WhatsApp para Admins
-- Log destacado com estrutura retangular
-
-```
-==================================================
-    CÓDIGO 2FA GERADO
-==================================================
-    
-    Usuário: admin@example.com
-    Código:  123456
-    Válido:  30 segundos
-    
-==================================================
-```
-
-### Segurança Avançada
-
-**Detecção de Anomalias Geográficas**
-- GeoIP API para coleta de localização por IP
-- Cálculo de distância com fórmula de Haversine
-- Proteção: Se 3+ tentativas em locais impossíveis:
-  - Forçar 2FA obrigatório
-  - Encerrar todas as sessões
-  - Blacklist de tokens
-  - Notificação via WhatsApp
-
-**Criptografia RSA 4096 E2E**
-- RSA 4096 bits para dados sensíveis
-- Certificado CA único no .env
-- Logs detalhados de operações
-
-**Tabelas Intermediárias Criptografadas**
-- Dados sensíveis em tabelas separadas
-- Criptografia AES-256-GCM
-- Proteção contra SQL injection
-
-**Argon2Id**
-- Hash com 64MB RAM, 4 iterações
-- Proteção contra GPU/ASIC attacks
-
-## Testes
-
-```powershell
-php artisan test
-./vendor/bin/pest
-```
-
-## Troubleshooting
-
-**Extensões PHP faltando**
-```powershell
-php -m
-```
-Editar php.ini e habilitar extensões necessárias.
-
-**Erro de conexão PostgreSQL**
-```powershell
-podman-compose ps
-podman-compose logs postgres
-```
-
-**Permissões Windows**
-```powershell
-icacls storage /grant Users:F /t
-icacls bootstrap\cache /grant Users:F /t
-```
-
-**Porta 8000 em uso**
-```powershell
-php artisan serve --port=8001
-```
-
-## Deploy Produção
-
-```powershell
+# Cache de configuração
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
-composer install --optimize-autoloader --no-dev
 ```
 
-Configurar .env:
-- APP_ENV=production
-- APP_DEBUG=false
-- HTTPS habilitado
+### Banco de Dados
+
+```powershell
+# Resetar banco de dados
+php artisan migrate:fresh --seed
+
+# Backup do banco
+podman exec acto-postgres pg_dump -U laravel_user laravel > backup.sql
+
+# Restore do banco
+podman exec -i acto-postgres psql -U laravel_user laravel < backup.sql
+```
+
+### Containers
+
+```powershell
+# Iniciar todos os serviços
+podman-compose up -d
+
+# Parar todos os serviços
+podman-compose down
+
+# Ver status
+podman-compose ps
+
+# Logs específicos
+podman-compose logs postgres
+podman-compose logs minio
+```
+
+## Arquitetura
+
+### Backend
+
+- **Framework**: Laravel 12
+- **Admin Panel**: Filament 4.0
+- **Database**: PostgreSQL 16 + PostGIS 3.4
+- **Storage**: MinIO (S3-compatible)
+- **Auth**: Laravel Fortify + 2FA
+
+### Frontend
+
+- **CSS Framework**: Bootstrap 5 + Tailwind CSS
+- **JavaScript**: jQuery
+- **Maps**: ArcGIS Maps SDK for JavaScript v4.28
+
+### Infraestrutura
+
+- **Containers**: Podman + Podman Compose
+- **Web Server**: PHP Built-in (dev) / Nginx (prod)
+- **Object Storage**: MinIO
+
+## Documentação Completa
+
+Documentação detalhada disponível em `/docs`:
+
+- **[TRD.md](docs/TRD.md)** - Documento Técnico de Requisitos
+- **[Infradoc.md](docs/Infradoc.md)** - Documentação de Infraestrutura
+- **[STORAGE.md](docs/STORAGE.md)** - Configuração de Storage
+
+## Troubleshooting
+
+### Erro: Connection refused (PostgreSQL)
+
+```powershell
+# Verificar se container está rodando
+podman ps | findstr postgres
+
+# Reiniciar container
+podman-compose restart postgres
+```
+
+### Erro: MinIO bucket não existe
+
+```powershell
+# Reconfigurar MinIO
+.\setup.ps1
+# Ou manualmente via console: http://localhost:9001
+```
+
+### Erro: Class not found
+
+```powershell
+# Recompilar autoload
+composer dump-autoload
+```
+
+### Assets não carregam
+
+```powershell
+# Limpar cache e recompilar
+npm run build
+php artisan view:clear
+```
+
+## Segurança
+
+- Autenticação de dois fatores (2FA)
+- Hash de senha com Argon2ID
+- Rate limiting em todas as rotas
+- CSRF protection
+- XSS protection
+- SQL Injection protection (PDO)
+- Validação de uploads
+- Session security configurada
 
 ## Licença
 
-[Definir licença]
+MIT License
+
+Copyright (c) 2025 Kemersson Vinicius Gonçalves Teixeira
+
+## Suporte
+
+Para dúvidas e problemas, consulte a documentação em `/docs` ou abra uma issue.
+
+---
+
+**ACTO Maps** - Sistema de Gestão Geoespacial

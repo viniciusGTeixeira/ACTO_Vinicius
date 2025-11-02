@@ -6,12 +6,12 @@
   },
   "favicon": "/favicon.svg",
   "colors": {
-    "primary": "#0D9373",
-    "light": "#07C983",
-    "dark": "#0D9373",
+    "primary": "#00c853",
+    "light": "#00e676",
+    "dark": "#009688",
     "anchors": {
-      "from": "#0D9373",
-      "to": "#07C983"
+      "from": "#00c853",
+      "to": "#009688"
     }
   },
   "topbarLinks": [
@@ -45,39 +45,39 @@
     {
       "group": "Início",
       "pages": [
-        "ESCOPO"
+        "ESCOPO.md"
       ]
     },
     {
       "group": "Documentação de Negócio",
       "pages": [
-        "BRD",
-        "PRD"
+        "BRD.md",
+        "PRD.md"
       ]
     },
     {
       "group": "Documentação Técnica",
       "pages": [
-        "technical/TRD",
-        "technical/TDD",
-        "technical/Infradoc",
-        "technical/Seguranca",
-        "technical/Environment-Variables",
-        "technical/Evolution-API"
+        "technical/TRD.md",
+        "technical/TDD.md",
+        "technical/Infradoc.md",
+        "technical/Seguranca.md",
+        "technical/Environment-Variables.md",
+        "technical/Evolution-API.md"
       ]
     },
     {
       "group": "Banco de Dados",
       "pages": [
-        "database"
+        "database.mdx"
       ]
     },
     {
       "group": "API Reference",
       "pages": [
-        "api/overview",
-        "api/authentication",
-        "api/layers"
+        "api/overview.mdx",
+        "api/authentication.mdx",
+        "api/layers.mdx"
       ]
     }
   ],
